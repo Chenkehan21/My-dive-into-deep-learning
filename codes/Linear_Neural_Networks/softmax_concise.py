@@ -13,7 +13,7 @@ build a softmax layer!
 If we do built a softmax layer, the network still works, but we 
 need a larger learning rate and more epochs.
 
-LogSoftmax is a trick to avoid overflow.
+LogSoftmax is a trick to avoid overflow!
 '''
 
 class Net(nn.Module):
