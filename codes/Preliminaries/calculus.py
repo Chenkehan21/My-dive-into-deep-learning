@@ -1,6 +1,8 @@
 from os import O_NDELAY
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import math
 
 # Differentiation, the process of finding a derivative in mathematics

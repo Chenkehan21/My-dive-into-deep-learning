@@ -1,9 +1,12 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import os
 import sys
-sys.path.append("..")
+sys.path.append("../")
+
 from utils import utils
 
 

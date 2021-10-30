@@ -1,7 +1,7 @@
 import sys
-sys.path.append('..')
+sys.path.append('../')
 
-from utils.utils import load_FMNIST, right_prediction, val_acc
+from utils.utils import load_FMNIST, right_prediction, val_acc2
 
 import torch
 import torch.nn as nn
@@ -51,7 +51,7 @@ def train(batch_size=256, lr=1e-1, epochs=10, num_workers=8):
             optimizer.step()
             optimizer.zero_grad()
             
-        acc = val_acc(net, val_iter, w, b)
+        acc = val_acc2(net, val_iter, w, b)
         train_acc = right_cnt / sample_cnt
         val_accs.append(acc)
         train_accs.append(train_acc)

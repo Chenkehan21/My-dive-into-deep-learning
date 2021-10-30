@@ -1,5 +1,5 @@
 import sys
-sys.path.append('..')
+sys.path.append('../')
 
 from utils.utils import load_FMNIST, train_FMNIST
 
@@ -31,7 +31,7 @@ def main(batch_size=256, lr=1e-1, epochs=10, num_workers=8):
     net = MLP().to(device)
     net.apply(init_weights)
     train_data, val_data = load_FMNIST(batch_size, num_workers)
-    train_FMNIST(net, train_data, val_data, lr, epochs, fig_name="mlp_concise")
+    train_FMNIST(net, train_data, val_data, device, lr, epochs, fig_name="mlp_concise")
 
 
 if __name__ == "__main__":

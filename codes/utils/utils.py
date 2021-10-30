@@ -1,4 +1,8 @@
-import torch
+import torch.nn as nn
+import torchvision
+from torch.utils import data
+from torchvision import transforms
+from torch import optim
 import matplotlib.pyplot as plt
 import random
 
@@ -73,3 +77,89 @@ def data_iter(batch_size, features, labels):
     for i in range(0, num_samples, batch_size):
         index_mask = indices[i : min(i + batch_size, num_samples)]
         yield features[index_mask], labels[index_mask]
+
+
+def right_prediction(y_hat, y):
+    if len(y_hat.shape) > 1 and y_hat.shape[1] > 1:
+        y_hat = y_hat.argmax(axis=1)
+    cnt = y_hat.type(y.dtype) == y
+    return cnt.sum().item()
+
+
+def val_acc(net, val_data, device):
+    right_cnt, sample_cnt = 0, 0
+    for feature, label in val_data:
+        feature, label = feature.to(device), label.to(device)
+        right_cnt += right_prediction(net(feature), label) 
+        sample_cnt += len(label)
+    
+    return right_cnt / sample_cnt
+
+
+def val_acc2(net, val_iter, w, b):
+    right_cnt, sample_cnt = 0, 0
+    if not isinstance(net, nn.Module):
+        for feature, label in val_iter:
+            right_cnt += right_prediction(net(feature, w, b), label)
+            sample_cnt += len(label)
+    else:
+        for feature, label in val_iter:
+            right_cnt += right_prediction(net(feature), label)
+            sample_cnt += len(label)
+    
+    return right_cnt / sample_cnt
+
+
+def load_FMNIST(batch_size, num_workers, resize=None):
+    trans = [transforms.ToTensor()]
+    if resize:
+        trans.insert(0, transforms.Resize(resize))
+    trans = transforms.Compose(trans)
+    fmnist_train = torchvision.datasets.FashionMNIST(
+        root='../FMNIST_DATASET', train=True, transform=trans, download=False
+    )
+    fmnist_val = torchvision.datasets.FashionMNIST(
+        root='../FMNIST_DATASET', train=False, transform=trans, download=False
+    )
+
+    train_iter = data.DataLoader(fmnist_train, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    val_iter = data.DataLoader(fmnist_val, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+
+    return train_iter, val_iter  
+
+
+def train_FMNIST(net, train_data, val_data, device, lr=1e-1, epochs=10, fig_name=None):
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(params=net.parameters(), lr=lr)
+    train_accs, val_accs, train_losses = [], [],[]
+
+    for epoch in range(epochs):
+        right_cnt, sample_cnt, total_loss, n = 0, 0, 0, 0
+        for feature, label in train_data:
+            n += 1
+            feature, label = feature.to(device), label.to(device)
+            y_hat = net(feature)
+            right_cnt += right_prediction(y_hat, label)
+            sample_cnt += len(y_hat)
+            loss = loss_function(y_hat, label)
+            total_loss += loss
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+        acc = val_acc(net, val_data, device)
+        train_acc = right_cnt / sample_cnt
+        val_accs.append(acc)
+        train_accs.append(train_acc)
+        train_loss = total_loss / n
+        train_losses.append(train_loss)
+        print("epoch: ", epoch + 1, "| train_loss: %.3f"%train_loss, 
+        "| train_acc: %.3f"%train_acc, "| val_acc: %.3f"%acc)
+    
+    if fig_name:
+        steps = list(range(epochs))
+        plt.plot(steps, train_accs, label='train_acc')
+        plt.plot(steps, val_accs, label='val_acc')
+        plt.plot(steps, train_losses, label='train_loss')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("./%s.png" % fig_name)

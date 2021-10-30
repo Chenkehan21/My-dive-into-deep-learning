@@ -59,10 +59,10 @@ def load_data(batch_size, num_workers, resize=None):
         trans.insert(0, transforms.Resize(resize))
     trans = transforms.Compose(trans)
     fmnist_train = torchvision.datasets.FashionMNIST(
-        root='./data', train=True, transform=trans, download=False
+        root='../FMNIST_DATASET', train=True, transform=trans, download=False
     )
     fmnist_val = torchvision.datasets.FashionMNIST(
-        root='./data', train=False, transform=trans, download=False
+        root='../FMNIST_DATASET', train=False, transform=trans, download=False
     )
 
     train_iter = data.DataLoader(fmnist_train, batch_size=batch_size, num_workers=num_workers, shuffle=True)
@@ -144,9 +144,7 @@ def train(batch_size=256, lr=1e-1, epochs=10, num_workers=8):
             right_cnt += right_prediction(y_hat, label)
             sample_cnt += len(y_hat)
             loss = loss_function(label, y_hat)
-            print(y_hat)
-            print(loss.sum() / loss.numel())
-            exit()
+            loss = loss.sum()
             total_loss += loss
             loss.backward()
             sgd([w, b], lr, batch_size)
