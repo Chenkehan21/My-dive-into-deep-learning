@@ -16,7 +16,7 @@ from utils.utils import data_iter
 
 '''
 Because of randomization the results of each experiment are different.
-Sometimes even let the linear layer train 50 weights it won't overfit.
+Sometimes even let the linear layer train 50 weights it won't overfit!
 '''
  
 
