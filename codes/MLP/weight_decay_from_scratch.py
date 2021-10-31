@@ -71,7 +71,7 @@ def train(dimension=500, batch_size=8, lr=0.005, epochs=20, _lambda=3):
         train_losses.append(train_loss.detach().numpy())
         val_losses.append(val_loss.detach().numpy())
         print("epoch: %d |train_loss: %.3f |val_loss: %.3f"%(epoch + 1, train_loss / n_train, val_loss / n_val))
-    # print(net.net[0].weight.data)
+    print(net.net[0].weight.data)
 
     steps = list(range(len(train_losses)))
     plt.figure(figsize=(10,10))
