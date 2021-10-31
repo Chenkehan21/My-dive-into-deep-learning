@@ -55,9 +55,9 @@ def init_weight(layer):
 
 
 def main(lr=0.01, batch_size=8, epochs=2000):    
-    # num = 4 # well fit
-    num = 50 # overfit
-    # num = 2 # underfit
+    # num = 4 # 4 order polinomial model: well fit
+    num = 50 # 50 order polinomial model: overfit
+    # num = 2 # linear model: underfit
     features, labels = generate_data()
     net = Net(input_size=num, output_size=1)
     net.apply(init_weight)
