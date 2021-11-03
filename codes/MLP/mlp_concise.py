@@ -36,3 +36,6 @@ def main(batch_size=256, lr=1e-1, epochs=10, num_workers=8):
 
 if __name__ == "__main__":
     main()
+    # net = MLP()
+    # print(net)
+    # print(net._modules)

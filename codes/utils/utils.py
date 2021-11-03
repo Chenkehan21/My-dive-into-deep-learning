@@ -1,8 +1,11 @@
+import sys
+sys.path.append('../')
 import torch.nn as nn
 import torchvision
 from torch.utils import data
 from torchvision import transforms
 from torch import optim
+import torch
 import matplotlib.pyplot as plt
 import random
 
@@ -110,7 +113,7 @@ def val_acc2(net, val_iter, w, b):
     return right_cnt / sample_cnt
 
 
-def load_FMNIST(batch_size, num_workers, resize=None):
+def load_FMNIST(batch_size, num_workers=8, resize=None):
     trans = [transforms.ToTensor()]
     if resize:
         trans.insert(0, transforms.Resize(resize))
@@ -151,7 +154,7 @@ def train_FMNIST(net, train_data, val_data, device, lr=1e-1, epochs=10, fig_name
         val_accs.append(acc)
         train_accs.append(train_acc)
         train_loss = total_loss / n
-        train_losses.append(train_loss)
+        train_losses.append(train_loss.detach().to("cpu").numpy())
         print("epoch: ", epoch + 1, "| train_loss: %.3f"%train_loss, 
         "| train_acc: %.3f"%train_acc, "| val_acc: %.3f"%acc)
     
@@ -162,4 +165,28 @@ def train_FMNIST(net, train_data, val_data, device, lr=1e-1, epochs=10, fig_name
         plt.plot(steps, train_losses, label='train_loss')
         plt.legend()
         plt.grid(True)
-        plt.savefig("./%s.png" % fig_name)
+        plt.savefig("./images/%s.png" % fig_name)
+
+
+def loss_func(y_hat, y):
+    return (y_hat - y.reshap(y_hat.shape))**2 / 2
+
+
+def sgd(params, lr, batch_size):
+    with torch.no_grad():
+        for param in params:
+            param -= lr * param.grad / batch_size
+            param.grad.zero_()
+
+
+def linear_model(x, w, b):
+    return torch.matmul(x, w) + b
+
+
+def softmax(x):
+    e_x = torch.exp(x)
+    return e_x / torch.sum(e_x, dim=1, keepdim=True)
+
+
+def cross_entropy(y_hat, y):
+    return -torch.log(y_hat[range(len(y_hat)), y])
