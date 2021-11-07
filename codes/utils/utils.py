@@ -1,5 +1,6 @@
 import sys
 sys.path.append('../')
+
 import torch.nn as nn
 import torchvision
 from torch.utils import data
@@ -7,6 +8,9 @@ from torchvision import transforms
 from torch import optim
 import torch
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
 import random
 
 
@@ -132,6 +136,7 @@ def load_FMNIST(batch_size, num_workers=8, resize=None):
 
 
 def train_FMNIST(net, train_data, val_data, device, lr=1e-1, epochs=10, fig_name=None):
+    net.to(device)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(params=net.parameters(), lr=lr)
     train_accs, val_accs, train_losses = [], [],[]
