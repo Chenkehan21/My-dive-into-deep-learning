@@ -6,12 +6,15 @@ import torchvision
 from torch.utils import data
 from torchvision import transforms
 from torch import optim
+from torch.cuda.amp import autocast
 import torch
+# torch.backends.cudnn.enabled = False
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
 import random
+from tqdm import tqdm
 
 
 def set_axes(axes, xlabel, ylabel, 
@@ -94,11 +97,13 @@ def right_prediction(y_hat, y):
 
 
 def val_acc(net, val_data, device):
-    right_cnt, sample_cnt = 0, 0
-    for feature, label in val_data:
-        feature, label = feature.to(device), label.to(device)
-        right_cnt += right_prediction(net(feature), label) 
-        sample_cnt += len(label)
+    net.eval()
+    with torch.no_grad():
+        right_cnt, sample_cnt = 0, 0
+        for feature, label in val_data:
+            feature, label = feature.to(device), label.to(device)
+            right_cnt += right_prediction(net(feature), label) 
+            sample_cnt += len(label)
     
     return right_cnt / sample_cnt
 
@@ -142,18 +147,24 @@ def train_FMNIST(net, train_data, val_data, device, lr=1e-1, epochs=10, fig_name
     train_accs, val_accs, train_losses = [], [],[]
 
     for epoch in range(epochs):
+        net.train()
         right_cnt, sample_cnt, total_loss, n = 0, 0, 0, 0
-        for feature, label in train_data:
+        for feature, label in tqdm(train_data):
             n += 1
             feature, label = feature.to(device), label.to(device)
+            if device == torch.device('cuda'):
+                torch.cuda.empty_cache()
             y_hat = net(feature)
             right_cnt += right_prediction(y_hat, label)
             sample_cnt += len(y_hat)
             loss = loss_function(y_hat, label)
             total_loss += loss
             loss.backward()
+            # print(net[0][0].weight.grad)
             optimizer.step()
             optimizer.zero_grad()
+        if device == torch.device('cuda'):
+            torch.cuda.empty_cache()
         acc = val_acc(net, val_data, device)
         train_acc = right_cnt / sample_cnt
         val_accs.append(acc)
