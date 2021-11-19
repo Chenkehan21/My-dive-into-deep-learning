@@ -33,12 +33,12 @@ class Vocab:
         if reserved_tokens is None:
             reserved_tokens = []
 
-        self.freq = self.calculate_frequence(tokens)
-        freq_tokens = sorted(self.freq, key=lambda x: self.freq[x], reverse=True)
+        freq = calculate_frequence(tokens)
+        self.freq_tokens = sorted(freq.items(), key=lambda x: x[1], reverse=True)
 
         self.unk = 0
         res = ['unk'] + reserved_tokens
-        res += [token for token in freq_tokens if self.freq[token] > min_freq and token not in res]
+        res += [token for token, freq in self.freq_tokens if freq > min_freq and token not in res]
 
         self.index_to_token, self.token_to_index = [], {}
         for i, token in enumerate(res):
@@ -58,11 +58,12 @@ class Vocab:
             return self.index_to_token[index]
         return [self.to_tokens(item) for item in index]
 
-    def calculate_frequence(self, tokens):
-        if len(tokens) == 0 or isinstance(tokens[0], list):
-            tokens = [token for line in tokens for token in line]
 
-        return collections.Counter(tokens)
+def calculate_frequence(tokens):
+    if len(tokens) == 0 or isinstance(tokens[0], list):
+        tokens = [token for line in tokens for token in line]
+
+    return collections.Counter(tokens)
 
 
 def test():
@@ -74,17 +75,18 @@ def test():
     print(vocab_word.to_tokens([1, 2, 3, 100, 1000, 2000, 3000, 4000, 4580-1]))
 
 
-def load_corpus_time_machine():
+def load_corpus_time_machine(token='char'):
     lines = load_book()
-    tokens_char = tokenize(lines, 'char')
+    tokens_char = tokenize(lines, token)
     vocab_char = Vocab(tokens=tokens_char)
     corpus = [token for line in tokens_char for token in line]
 
-    return corpus
+    return corpus, vocab_char
 
 
 
 if __name__ == "__main__":
     test()
-    corpus = load_corpus_time_machine()
+    corpus, _ = load_corpus_time_machine()
     print(len(corpus))
+    print(corpus[:5])
