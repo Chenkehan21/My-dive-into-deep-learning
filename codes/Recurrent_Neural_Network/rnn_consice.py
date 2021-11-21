@@ -1,8 +1,12 @@
+import sys
+sys.path.append('../')
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from read_long_sequence_data import load_data_time_machine
-from rnn_from_scratch import predict, train, grad_clip
+from rnn_from_scratch import predict, grad_clip
+from utils.utils import train_rnn
 
 
 class RNN(nn.Module):
@@ -35,7 +39,8 @@ def main(batch_size=32, lr=0.1, epochs=800,
     loss_fun = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr)
 
-    train(epochs, data_iter, vocab, net, loss_fun, optimizer, 
+    trainer = train_rnn()
+    trainer(epochs, data_iter, vocab, net, loss_fun, optimizer, 
           device, need_to_clip, fig_name, need_to_predict)
 
 

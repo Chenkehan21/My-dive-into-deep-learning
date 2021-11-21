@@ -1,14 +1,17 @@
 import sys
 sys.path.append('../')
 
+import torch
 import torch.nn as nn
-import torchvision
+import torch.nn.functional as F
 from torch.utils import data
-from torchvision import transforms
 from torch import optim
 from torch.cuda.amp import autocast
-import torch
 # torch.backends.cudnn.enabled = False
+
+import torchvision
+from torchvision import transforms
+
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
@@ -16,6 +19,7 @@ matplotlib.use('Agg')
 import random
 from tqdm import tqdm
 
+from Recurrent_Neural_Network.rnn_from_scratch import train
 
 def set_axes(axes, xlabel, ylabel, 
              xlim, ylim, 
@@ -206,3 +210,44 @@ def softmax(x):
 
 def cross_entropy(y_hat, y):
     return -torch.log(y_hat[range(len(y_hat)), y])
+
+
+class RNN_FROM_SCRATCH:
+    def __init__(self, vocab_size, hidden_size, 
+                 params, init_state_fn, forward_fn,
+                 device):
+        self.vocab_size = vocab_size
+        self.hidden_size = hidden_size
+        self.params = params
+        self.forward_fn = forward_fn
+        self.init_state_fn = init_state_fn
+
+    def __call__(self, x_batch, state):
+        x = F.one_hot(x_batch.T, self.vocab_size).type(torch.float32)
+        return self.forward_fn(x, state, self.params)
+    
+    def begin_state(self, batch_size):
+        return self.init_state_fn(batch_size, self.hidden_size, self.device)
+
+
+class RNN_Moduel(nn.Module):
+    def __init__(self, forward_fn, vocab_size, hidden_size, device):
+        self.forward_fn = forward_fn
+        self.vocab_size = vocab_size
+        self.hidden_size = hidden_size
+        self.device = device
+        self.linear = nn.Linear(hidden_size, self.vocab_size)
+    
+    def forward(self, x, hidden_state):
+        x = F.one_hot(x.T, self.vocab_size).type(torch.float32).to(self.device)
+        y, hidden_state = self.rnn(x, hidden_state) # y.shape=(num_steps, batch_size, hidden_size)
+        y = self.linear(y.reshape(-1, y.shape[-1]))
+        
+        return y, hidden_state
+    
+    def begin_state(self, batch_size, device):
+        return torch.zeros(self.rnn.num_layers, batch_size, self.hidden_size).to(self.device)
+    
+
+def train_rnn():
+    return train        
