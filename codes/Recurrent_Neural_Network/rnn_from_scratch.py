@@ -12,6 +12,7 @@ class RNN:
         self.device = device
         self.vocab_size = vocab_size
 
+        # don't use to(device) it will throw an errow: not a leaf-node!
         self.w_xh = torch.normal(mean=0, std=0.01, size=(input_size, hidden_size), requires_grad=True, device=device)
         self.w_hh = torch.normal(mean=0, std=0.01, size=(hidden_size, hidden_size), requires_grad=True, device=device)
         self.b_h = torch.zeros(size=(hidden_size,), requires_grad=True, device=device)
@@ -21,16 +22,17 @@ class RNN:
         self.params = [self.w_xh, self.w_hh, self.b_h, self.w_hq, self.b_q]
 
     def __call__(self, x_batch, hidden_state):
+        # x_batch.shape=[batch_size, num_steps]
         res = []
         H = hidden_state
-        X = F.one_hot(x_batch.T, self.vocab_size).type(torch.float32)
+        X = F.one_hot(x_batch.T, self.vocab_size).type(torch.float32) # X.shape=[num_steps, batch_size, len(vocab)]
         for x in X:
-            x = x.to(self.device)
-            H = torch.tanh(torch.matmul(x, self.w_xh) + torch.matmul(H, self.w_hh) + self.b_h)
-            Y = torch.matmul(H, self.w_hq) + self.b_q
+            x = x.to(self.device) # x.shape=[batch_size, len(vocab)]
+            H = torch.tanh(torch.matmul(x, self.w_xh) + torch.matmul(H, self.w_hh) + self.b_h) # H.shape=[batch_size, hidden_size]
+            Y = torch.matmul(H, self.w_hq) + self.b_q # Y.shape=[batch_size, len(vocab)]
             res.append(Y)
         
-        output = torch.cat(res, dim=0)
+        output = torch.cat(res, dim=0) # output.shape=[batch_size * num_steps, len(vocab)]
 
         return output, H
 
@@ -58,8 +60,6 @@ def predit(net, text, predict_steps, vocab, device):
         res.append(vocab[token])
     for i in range(predict_steps):
         output, hidden_state = net(get_data(), hidden_state)
-        # print(output.shape)
-        # print(output.argmax(dim=1))
         res.append(int(output.argmax(dim=1).reshape(1)))
     
     return ''.join(vocab.to_tokens(i) for i in res)
@@ -71,7 +71,6 @@ def train(batch_size=32, lr=0.5, epochs=500, step=35, use_random_sample=False, t
     data_iter, vocab = load_data_time_machine(batch_size, step, use_random_sample, token)
     net = RNN(len(vocab), 512, device)
     loss_fun = nn.CrossEntropyLoss()
-    # print(net.params[0].is_leaf)
     optimizer = torch.optim.SGD(net.params, lr)
 
     total_perplexity = []
@@ -80,6 +79,32 @@ def train(batch_size=32, lr=0.5, epochs=500, step=35, use_random_sample=False, t
         for x, y in data_iter:
             hidden_state = net.hidden_state_init(batch_size=x.shape[0])
             output, hidden_state = net(x, hidden_state)
+            '''
+            y.shape=[batch_size, num_steps]
+
+                   step_1 step_2 step_3 ... step_34 step_35
+
+            batch1    2     12     11   ...   22      7
+            
+            batch2    0     8       3   ...   12      0
+
+            batch3    11    ...
+               :      :
+               :      :
+            batch31   9
+
+            batch32   22
+
+            after transpose y.shape=[num_steps, batchsize] so after reahpe(-1) the label is 
+            [2, 0, 11, ..., 9, 22, 12, 8, ...] => shape=(batch_size * num_steps,)
+            \_________  _________/
+                      \/
+            fist step in every batch 
+
+            output.shape          = [batch_size * num_steps, len(vocab)]
+            y.T.reshape(-1).shape = (batch_size * num_steps,)
+            then use cross entropy loss.
+            '''
             y = y.T.reshape(-1)
             x, y = x.to(device), y.to(device)
             loss = loss_fun(output, y)
