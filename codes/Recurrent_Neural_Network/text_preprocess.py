@@ -75,13 +75,15 @@ def test():
     print(vocab_word.to_tokens([1, 2, 3, 100, 1000, 2000, 3000, 4000, 4580-1]))
 
 
-def load_corpus_time_machine(token='char'):
+def load_corpus_time_machine(token='char', max_tokens=-1):
     lines = load_book()
-    tokens_char = tokenize(lines, token)
-    vocab_char = Vocab(tokens=tokens_char)
-    corpus = [token for line in tokens_char for token in line]
+    tokens = tokenize(lines, token)
+    vocab = Vocab(tokens=tokens)
+    corpus = [vocab[token] for line in tokens for token in line]
+    if max_tokens > 0:
+        corpus = corpus[:max_tokens]
 
-    return corpus, vocab_char
+    return corpus, vocab
 
 
 

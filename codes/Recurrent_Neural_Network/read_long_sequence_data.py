@@ -45,20 +45,22 @@ def test():
 
 
 class SeqDataLoader:
-    def __init__(self, batch_size, step, use_random_sample, token):
+    def __init__(self, batch_size, step, use_random_sample, token, max_tokens=-1):
+        self.step = step
+        self.batch_size = batch_size
         if use_random_sample:
             self.sample_fn = seq_data_iter_random
         else:
             self.sample_fn = seq_data_iter_sequential
-        corpus, vocab = load_corpus_time_machine(token)
+        self.corpus, self.vocab = load_corpus_time_machine(token, max_tokens)
     
     def __iter__(self):
-        return self.sample_fn
+        return self.sample_fn(self.corpus, self.step, self.batch_size)
 
 
-def load_data_time_machine(batch_size, step, use_random_sample, token):
+def load_data_time_machine(batch_size, step, use_random_sample=False, token='char', max_tokens=-1):
     data_iter = SeqDataLoader(batch_size, step, use_random_sample, token)
-    return data_iter
+    return data_iter, data_iter.vocab
 
 
 if __name__ == "__main__":

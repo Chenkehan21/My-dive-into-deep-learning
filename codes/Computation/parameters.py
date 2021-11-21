@@ -55,6 +55,7 @@ def main():
     print(net3)
     data = torch.normal(0, 0.01, (16, 784))
     res = net3(data)
+    print(type(net3.parameters()))
     print(res.sum(dim=1, keepdim=True))
 
     print(net3[1]._modules["block1"][0].bias.data)
