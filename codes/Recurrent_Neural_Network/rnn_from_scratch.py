@@ -134,7 +134,7 @@ def train(epochs, data_iter, vocab, net, loss_fun, optimizer,
 
 def main(batch_size=32, lr=0.5, epochs=500, 
         step=35, use_random_sample=False, token='char', 
-        need_to_clip=False, plot=False, need_to_predict=False):
+        need_to_clip=False, fig_name="rnn_from_scratch", need_to_predict=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = torch.device('cpu')
     data_iter, vocab = load_data_time_machine(batch_size, step, use_random_sample, token)
