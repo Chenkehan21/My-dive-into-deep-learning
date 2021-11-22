@@ -239,7 +239,13 @@ class RNN_Moduel(nn.Module):
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.device = device
-        self.linear = nn.Linear(hidden_size, self.vocab_size)
+        
+        if self.forward_fn.bidirectional:
+            self.num_directions = 2
+            self.linear = nn.Linear(hidden_size * 2, self.vocab_size)
+        else:
+            self.num_directions = 1
+            self.linear = nn.Linear(hidden_size, self.vocab_size)
     
     def forward(self, x, hidden_state):
         x = F.one_hot(x.T, self.vocab_size).type(torch.float32).to(self.device)
@@ -249,7 +255,8 @@ class RNN_Moduel(nn.Module):
         return y, hidden_state
     
     def hidden_state_init(self, batch_size):
-        return self.init_state_fn(self.forward_fn.num_layers, batch_size, self.hidden_size, self.device)
+        return self.init_state_fn(self.num_directions, self.forward_fn.num_layers, 
+                                  batch_size, self.hidden_size, self.device)
     
 
 def train_rnn():
