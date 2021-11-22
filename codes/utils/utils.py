@@ -221,12 +221,13 @@ class RNN_FROM_SCRATCH:
         self.params = params
         self.forward_fn = forward_fn
         self.init_state_fn = init_state_fn
+        self.device = device
 
     def __call__(self, x_batch, state):
         x = F.one_hot(x_batch.T, self.vocab_size).type(torch.float32)
-        return self.forward_fn(x, state, self.params)
+        return self.forward_fn(x, state, self.params, self.device)
     
-    def begin_state(self, batch_size):
+    def hidden_state_init(self, batch_size):
         return self.init_state_fn(batch_size, self.hidden_size, self.device)
 
 
