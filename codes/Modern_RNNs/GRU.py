@@ -78,4 +78,4 @@ def main(batch_size=32, epochs=500, lr=1.0, num_steps=32, hidden_size=256):
 
 
 if __name__ == "__main__":
-    main(epochs=2)
+    main(epochs=500)

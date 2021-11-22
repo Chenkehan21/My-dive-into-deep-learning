@@ -233,6 +233,7 @@ class RNN_FROM_SCRATCH:
 
 class RNN_Moduel(nn.Module):
     def __init__(self, forward_fn, vocab_size, hidden_size, device):
+        super().__init__()
         self.forward_fn = forward_fn
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
@@ -241,13 +242,13 @@ class RNN_Moduel(nn.Module):
     
     def forward(self, x, hidden_state):
         x = F.one_hot(x.T, self.vocab_size).type(torch.float32).to(self.device)
-        y, hidden_state = self.rnn(x, hidden_state) # y.shape=(num_steps, batch_size, hidden_size)
+        y, hidden_state = self.forward_fn(x, hidden_state) # y.shape=(num_steps, batch_size, hidden_size)
         y = self.linear(y.reshape(-1, y.shape[-1]))
         
         return y, hidden_state
     
-    def begin_state(self, batch_size, device):
-        return torch.zeros(self.rnn.num_layers, batch_size, self.hidden_size).to(self.device)
+    def hidden_state_init(self, batch_size):
+        return torch.zeros(size=(self.forward_fn.num_layers, batch_size, self.hidden_size), device=self.device)
     
 
 def train_rnn():
