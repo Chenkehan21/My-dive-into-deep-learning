@@ -50,9 +50,8 @@ def Nadaraya_Watson_predict():
     plt.xlabel('queries')
     plt.ylabel('keys')
     plt.colorbar()
-
     plt.savefig('./images/Nadaraya-Watson_attention_weight.png')
-    plt.cla()
+    plt.close()
     y_hat = torch.matmul(attention_weight, y_train)
     plt.plot(x_train, y_true, label='true', linestyle='-', color='r')
     plt.scatter(x_train, y_train, label='with_noise')
