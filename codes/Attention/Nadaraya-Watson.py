@@ -70,6 +70,13 @@ class NWKernelRegression(nn.Module):
     def forward(self, query, keys, value):
         self.attention_weight = torch.softmax(-0.5 * (self.w * (query - keys))**2, dim=1)
         y_hat = torch.bmm(self.attention_weight.unsqueeze(1), value.unsqueeze(-1))
+        '''
+        res = torch.bmm(a, b) if a.shape = (b, n, m) and b.shape = (b, m, p) then res.shape = (b, n, p)
+        here, attention_weight.shape = (50, 49), value.shape = (50, 49)
+        attention_weight.unsqueeze(1).shape = (50, 1, 49); value.unsqueeze(-1).shape = (50, 49, 1)
+        then y_hat.shape = (50, 1, 1), so y_hat.squeeze().shape = (50,)
+        actually it's the same as torch.sum(attention_weight * values, dim=1).squeeze()
+        '''
 
         return y_hat.squeeze()
 
