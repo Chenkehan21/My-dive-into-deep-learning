@@ -20,7 +20,9 @@ class RNN(nn.Module):
     
     def forward(self, x, hidden_state):
         x = F.one_hot(x.T, self.vocab_size).type(torch.float32).to(self.device)
-        y, hidden_state = self.rnn(x, hidden_state) # y.shape=(num_steps, batch_size, hidden_size)
+        y, hidden_state = self.rnn(x, hidden_state)
+        # y.shape=(num_steps, batch_size, hidden_size)
+        # hidden_state.shape=(D*num_layers, N, H) D=2 if bidirectional=True otherwise 1
         y = self.linear(y.reshape(-1, y.shape[-1]))
         
         return y, hidden_state
