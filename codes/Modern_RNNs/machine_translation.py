@@ -113,3 +113,4 @@ if __name__ == "__main__":
     data_iter, source_vocab, target_vocab = load_data_iter()
     tmp = next(iter(data_iter))
     print(tmp)
+    print(source_vocab.to_tokens(4))

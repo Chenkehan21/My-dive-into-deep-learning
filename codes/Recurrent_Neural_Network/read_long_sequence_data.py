@@ -1,4 +1,4 @@
-from text_preprocess import load_corpus_time_machine
+from .text_preprocess import load_corpus_time_machine
 import random
 import torch
 

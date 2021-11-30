@@ -1,9 +1,16 @@
 import sys
 sys.path.append('../')
 
+from torch import optim
 import torch
 import torch.nn as nn
-from machine_translation import load_data_iter
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+import math
+import collections
+
+from machine_translation import load_data_iter, truncate_pad
+from Recurrent_Neural_Network.rnn_from_scratch import grad_clip
 
 
 class Encoder(nn.Module):
@@ -92,48 +99,141 @@ class Seq2SeqDecoder(nn.Module):
     
 
 def sequence_mask(x, valid_len, mask_value=0):
-    ...
+    max_len = x.shape[1]
+    # the operation is in essence a broadcast
+    mask = torch.arange(max_len, device=x.device)[None, :] >= valid_len[:, None]
+    x[mask] = mask_value
+    
+    return x
     
 
-class MaskedSoftmaxCELoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        ...
-        
+class MaskedSoftmaxCELoss(nn.CrossEntropyLoss):
     def forward(self, pred, label, valid_len):
-        ...
+        '''
+        pred is the output of Decoder, pred.shape=(batch_size, num_steps, vocab_size)
+        label.shape=(batch_size, num_steps)
+        valid_lan.shape=(batch_size, )
+        '''
+        self.reduction = 'none'
+        weights = torch.ones_like(label)
+        '''
+        weights.shape=(batch_size, num_steps)
+        max_len = num_steps
+        mask -> (1         , num_steps)
+                (batch_size,     1    )
+                (batch_size, num_steps)
+        weights.shape=(batch_size, num_steps)
+        '''
+        weights = sequence_mask(weights, valid_len)
+        # since we define self.reduction='none', unweighted_loss.shape=(batch_size, num_steps)
+        unweighted_loss = super(MaskedSoftmaxCELoss, self).forward(pred.permute(0, 2, 1), label)
+        weighted_loss = (unweighted_loss * weights).mean(dim=1)
+        
+        return weighted_loss
         
 
-def train():
-    ...
+def train(epochs, data_iter, target_vocab, 
+          net, loss_fun, optimizer, device, 
+          fig_name='gru_concise'):
+    net.train()
+    train_losses = []
+    for epoch in range(epochs):
+        num_tokens, total_loss = 0, 0.0
+        for batch in tqdm(data_iter):
+            x, x_len, y, y_len = [x.to(device) for x in batch]
+            # teach forcing
+            bos = torch.tensor([target_vocab['<bos>']] * y.shape[0], device=device).reshape(-1, 1)
+            decoder_input = torch.cat([bos, y[:, :-1]], dim=1) # not include '<eos>'
+            y_hat, _ = net(x, decoder_input)
+            loss = loss_fun(y_hat, y, y_len).sum()
+            total_loss += loss
+            loss.backward()
+            num_tokens += y_len.sum()
+            grad_clip(net, 1)
+            optimizer.step()
+            optimizer.zero_grad()
+        train_loss = total_loss / num_tokens
+        train_losses.append(train_loss)
+        print("epoch: ", epoch + 1, "| train loss: %.3f" % train_loss)
+        
+    if fig_name:
+        steps = list(range(len(train_losses)))
+        plt.plot(steps, train_losses, label='train_loss')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("./images/%s.png" % fig_name)
+        
+            
+
+def predict(net, device, 
+            source_sentence: str, source_vocab, target_vocab, num_steps,
+            save_attention_weights=False):
+    net.eval()
+    res, attention_weight_save = [], []
+    
+    # preprocess source sentence
+    sentence_token = source_vocab[source_sentence.lower().split(' ')] + [source_vocab['<eos>']]
+    sentence_valid_len = torch.tensor(len(sentence_token), device=device)
+    sentence_token = truncate_pad(sentence_token, num_steps, source_vocab['<pad>'])
+    
+    encoder_input = torch.unsqueeze(torch.tensor(sentence_token, device=device), dim=0)
+    encoder_output = net.encoder(encoder_input)
+    decoder_state = net.decoder.init_state(encoder_output)
+    decoder_input = torch.unsqueeze(torch.tensor([target_vocab['<bos>']], device=device), dim=0)
+    
+    for _ in range(num_steps):
+        output, decoder_state = net.decoder(decoder_input, decoder_state)
+        dec_x = output.argmax(dim=2)
+        pred = dec_x.squeeze(dim=0).item()
+        if pred == target_vocab['<eos>']:
+            break
+        if save_attention_weights:
+            ...
+        res.append(pred)
+    
+    return ''.join(target_vocab.to_tokens(res)), attention_weight_save
+    
+    
+def BLEU(pred_seq, label_seq, k):
+    pred_seq, label_seq = pred_seq.split(' '), label_seq.split(' ')
+    len_pred, len_label = len(pred_seq), len(label_seq)
+    score = math.exp(min(0, 1 - len_pred / len_pred))
+    for n in range(1, k + 1):
+        num_matches, label_subs = 0, collections.defaultdict(int)
+        for i in range(len_label - n + 1):
+            label_subs[''.join(label_seq[i : i + n])] += 1
+        for i in range(len_pred - n + 1):
+            if label_subs[''.join(label_seq[i : i + n])] > 0:
+                num_matches += 1
+                label_subs[''.join(label_seq[i : i + n])] -= 1
+        score *= math.pow(num_matches / (len_pred - n + 1 + 1e-5), math.pow(0.5, n))
+    
+    return score
     
 
-def predict():
-    ...
+def main(batch_size=64, epochs=300, lr=0.005, 
+         num_steps=10, embedding_dim=32, num_hiddens=32, num_layers=2, dropout=0.1,
+         fig_name='seq2seq', to_predict=True):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    data_iter, source_vocab, target_vocab = load_data_iter(num_steps, batch_size)
+    encoder = Seq2SeqEncodcer(vocab_size=len(source_vocab), embedding_dim=embedding_dim, num_hiddens=num_hiddens, num_layers=num_layers, dropout=dropout)
+    decoder = Seq2SeqDecoder(vocab_size=len(target_vocab), embedding_dim=embedding_dim, num_hiddens=num_hiddens, num_layers=num_layers, dropout=dropout)
+    net = EncoderDdecoder(encoder, decoder).to(device)
+    loss_fun = MaskedSoftmaxCELoss()
+    optimizer = optim.SGD(net.parameters(), lr)
     
+    train(epochs, data_iter, target_vocab, 
+          net, loss_fun, optimizer, device, 
+          fig_name=fig_name)
 
-def main():
-    ...
+    if to_predict:
+        engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
+        fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
+        for eng, fra in zip(engs, fras):
+            translation, attention_weight_seq = predict(
+            net, device, eng, source_vocab, target_vocab, num_steps, device)
+            print(f'{eng} => {translation}, bleu={BLEU(translation, fra, k=2):.3f}')
         
 
 if __name__ == "__main__":
-    # data_iter, source_vocab, target_vocab = load_data_iter()
-    # tmp = next(iter(data_iter))
-    # print(tmp)
-    # x = tmp[0]
-    # vocab_size = len(source_vocab)
-    # embed_size = 32
-    # embedding = nn.Embedding(vocab_size, embed_size)
-    # output = embedding(x)
-    # print(output, output.shape)
-    
-    encoder = Seq2SeqEncodcer(10, 8, 16, 2)
-    decoder = Seq2SeqDecoder(10, 8, 16, 2)
-    encoder.eval()
-    decoder.eval()
-    x = torch.zeros((4, 7), dtype=torch.long)
-    output, state = encoder(x)
-    print(output.shape, state.shape)
-    state = decoder.init_state(encoder(x))
-    output, state = decoder(x, state)
-    print(output.shape, state.shape)
+    main()

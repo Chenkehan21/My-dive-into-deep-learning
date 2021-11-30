@@ -1,8 +1,11 @@
+import sys
+sys.path.append('../')
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from read_long_sequence_data import load_data_time_machine
+from .read_long_sequence_data import load_data_time_machine
 
 
 class RNN:
