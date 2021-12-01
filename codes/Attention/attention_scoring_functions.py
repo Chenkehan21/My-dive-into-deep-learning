@@ -10,9 +10,49 @@ from Modern_RNNs.seq2seq import sequence_mask
 def masked_softmax(scores, valid_len):
     # scores.shape=(batch_size, num_queries, num_keys)
     # valid_len is a one dimension tensor
-    shape = scores.shape 
-    if valid_len.dim() == 1:
-        valid_len = torch.repeat_interleave(valid_len, shape[1])
+    if valid_len is None:
+        return torch.softmax(scores, dim=-1)
+    else:
+        shape = scores.shape
+        if valid_len.dim() == 1:
+            # len(valid_len) should equal to batch_size, each element means the valid len of all queries in this batch
+            valid_len = torch.repeat_interleave(valid_len, shape[1])
+            # after repeat+interleave, valid_len is still a one dimension tensor, len(valid_len) = batch_size * num_queries
+        else:
+            # valid_len.shape=(batch_size, num_queries) each element means the valid len of one query
+            valid_len = valid_len.reshape(-1) # turn valid_len to a one dimension tensor
+        scores = sequence_mask(scores.reshape(-1, shape[-1]), valid_len, mask_value=-1e6)
+        res = torch.softmax(scores.reshape(shape), dim=-1) # return to the original shape of scores
+        '''
+        in sequence_mask, max_len = scores.shape[1] = num_queries
+        scores.reshape(-1, shape[-1]).shape=(batch_size * num_queries, num_keys)
+        valid_len.shape=(batch_size * num_queries,) so the sequence_mask would work well
+        after sequence_mask, scores.shape=(batch_size * num_queries, num_keys)
+        res.shape=(batch_size, num_queries, num_keys)
+        '''
+
+    return res
+
+
+def check_masked_softmax():
+    res = masked_softmax(torch.rand(4, 3, 5), torch.tensor([1, 2, 3, 4]))
+    print(res)
+    res2 = masked_softmax(torch.rand(4, 3, 5), torch.tensor([[1, 2, 3], [2, 3, 4], [3, 4, 5], [1, 1, 2]]))
+    print()
+    print(res2)
+
+
+def check_AdditiveAttention():
+    queries, keys = torch.normal(0, 1, (2, 1, 20)), torch.ones((2, 10, 2))
+    values = torch.arange(40, dtype=torch.float32).reshape(1, 10, 4).repeat(
+        2, 1, 1)
+    valid_lens = torch.tensor([2, 6])
+
+    attention = AdditiveAttention(k_size=2, q_size=20, num_hiddens=8,
+                                dropout=0.1)
+    attention.eval()
+    res = attention(keys, queries, values, valid_lens) # res.shape=(2, 1, 4) => (batch_size, num_queries, v_size)
+    print(res, res.shape)
 
 
 class AdditiveAttention(nn.Module):
@@ -53,3 +93,8 @@ class AdditiveAttention(nn.Module):
         # output.shape=(batch_size, num_queries, v_size)
         
         return output
+
+
+if __name__ == "__main__":
+    check_masked_softmax()
+    check_AdditiveAttention()

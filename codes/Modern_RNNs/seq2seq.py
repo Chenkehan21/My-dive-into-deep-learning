@@ -120,7 +120,7 @@ def sequence_mask(x, valid_len, mask_value=0):
     2. When iterating over the dimension sizes, starting at the trailing dimension, 
     the dimension sizes must either be equal, one of them is 1, or one of them does not exist.
     
-    shape (1, x) + shape(y, 1) = shape (y, x)
+    shape (1, max_len) + shape(len(valid_len), 1) = shape (len(valid_len), max_len)
     '''
     mask = torch.arange(max_len, device=x.device)[None, :] >= valid_len[:, None]
     x[mask] = mask_value
