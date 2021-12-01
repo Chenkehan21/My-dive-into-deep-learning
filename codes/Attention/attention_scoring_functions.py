@@ -7,10 +7,12 @@ import torch.nn as nn
 from Modern_RNNs.seq2seq import sequence_mask
 
 
-def masked_softmax(x, valid_len):
-    shape = x.shape 
+def masked_softmax(scores, valid_len):
+    # scores.shape=(batch_size, num_queries, num_keys)
+    # valid_len is a one dimension tensor
+    shape = scores.shape 
     if valid_len.dim() == 1:
-        valid_len = torch.repeat_interleave(valid_len, shape[-1])
+        valid_len = torch.repeat_interleave(valid_len, shape[1])
 
 
 class AdditiveAttention(nn.Module):

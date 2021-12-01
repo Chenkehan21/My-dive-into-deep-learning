@@ -100,7 +100,28 @@ class Seq2SeqDecoder(nn.Module):
 
 def sequence_mask(x, valid_len, mask_value=0):
     max_len = x.shape[1]
-    # the operation is in essence a broadcast
+    '''
+    the operation is in essence a broadcast:
+    
+    if x.shape=(a, b, c):
+    x[None, :].shape=(1, a, b, c); 
+    x[:, None].shape=(a, 1, b, c); 
+    x[:, :, None].shape=(a, b, 1, c)
+    ...
+    
+    actually it's the same as x.unsqueeze(dim)
+    x[None, :] <=> x.unsqueeze(dim=0)
+    x[:, None] <=> x.unsqueeze(dim=1)
+    x[:, :, None] <=> x.unsqueeze(dim=2)
+    ...
+    
+    broadcast:
+    1. Each tensor has at least one dimension.
+    2. When iterating over the dimension sizes, starting at the trailing dimension, 
+    the dimension sizes must either be equal, one of them is 1, or one of them does not exist.
+    
+    shape (1, x) + shape(y, 1) = shape (y, x)
+    '''
     mask = torch.arange(max_len, device=x.device)[None, :] >= valid_len[:, None]
     x[mask] = mask_value
     
