@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import math
 import collections
 
-from machine_translation import load_data_iter, truncate_pad
+from .machine_translation import load_data_iter, truncate_pad
 from Recurrent_Neural_Network.rnn_from_scratch import grad_clip
 
 
