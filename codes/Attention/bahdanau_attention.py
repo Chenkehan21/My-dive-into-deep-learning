@@ -46,7 +46,7 @@ class Seq2SeqAttentionDecoder(nn.Module):
             
             context = self.attention(keys, queries, values, encoder_valid_lens)
             x = torch.cat([context, x.unsqueeze(dim=1)], dim=-1)
-            output, hidden_state = self.rnn(x, hidden_state) # output.shape=(num_steps, batch_size, hidden_size)
+            output, hidden_state = self.rnn(x.permute(1, 0, 2), hidden_state) # output.shape=(num_steps, batch_size, hidden_size)
             outputs.append(output)
             self._attention_weights.append(self.attention.attention_weights)
         
@@ -59,9 +59,9 @@ class Seq2SeqAttentionDecoder(nn.Module):
         return self._attention_weights
 
 
-def main(batch_size=64, epochs=300, lr=0.005, 
+def main(batch_size=64, epochs=2, lr=0.005, 
          num_steps=10, embedding_dim=32, num_hiddens=32, num_layers=2, dropout=0.1,
-         fig_name='seq2seq', to_predict=True):
+         fig_name='bahdanau_attention', to_predict=True):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_iter, source_vocab, target_vocab = load_data_iter(num_steps, batch_size)
     encoder = Seq2SeqEncodcer(vocab_size=len(source_vocab), embedding_dim=embedding_dim, num_hiddens=num_hiddens, num_layers=num_layers, dropout=dropout)
@@ -81,3 +81,8 @@ def main(batch_size=64, epochs=300, lr=0.005,
             translation, attention_weight_seq = predict(
             net, device, eng, source_vocab, target_vocab, num_steps, device)
             print(f'{eng} => {translation}, bleu={BLEU(translation, fra, k=2):.3f}')
+
+        print(attention_weight_seq)
+
+if __name__ == "__main__":
+    main()

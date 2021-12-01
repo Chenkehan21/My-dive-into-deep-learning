@@ -39,7 +39,7 @@ class EncoderDdecoder(nn.Module):
         self.decoder = decoder
         
     def forward(self, input, x, *args):
-        encoder_outputs = self.encoder.forward(input, *args)
+        encoder_outputs = self.encoder(input, *args)
         state = self.decoder.init_state(encoder_outputs, *args)
         
         return self.decoder.forward(x, state)
@@ -50,9 +50,8 @@ class Seq2SeqEncodcer(Encoder):
         super().__init__(**kwargs)
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.rnn = nn.GRU(embedding_dim, num_hiddens, num_layers, dropout=dropout)
-
     
-    def forward(self, x):
+    def forward(self, x, *args):
         # x.shape=(source_batch_size, source_num_steps)
         embedded_x = self.embedding(x) # shape=(batch_size, num_steps, embedding_dim)
         embedded_x = embedded_x.permute(1, 0, 2)
@@ -71,7 +70,7 @@ class Seq2SeqDecoder(nn.Module):
         self.rnn = nn.GRU(num_hiddens + embedding_dim, num_hiddens, num_layers, dropout=dropout)
         self.dense = nn.Linear(num_hiddens, vocab_size)
         
-    def init_state(self, encoder_output_state):
+    def init_state(self, encoder_output_state, *args):
         return encoder_output_state[1]
     
     def forward(self, x, state):
@@ -165,7 +164,7 @@ def train(epochs, data_iter, target_vocab,
             # teach forcing
             bos = torch.tensor([target_vocab['<bos>']] * y.shape[0], device=device).reshape(-1, 1)
             decoder_input = torch.cat([bos, y[:, :-1]], dim=1) # not include '<eos>'
-            y_hat, _ = net(x, decoder_input)
+            y_hat, _ = net(x, decoder_input, x_len)
             loss = loss_fun(y_hat, y, y_len).sum()
             total_loss += loss
             loss.backward()
@@ -199,7 +198,7 @@ def predict(net, device,
     
     encoder_input = torch.unsqueeze(torch.tensor(sentence_token, device=device), dim=0)
     encoder_output = net.encoder(encoder_input)
-    decoder_state = net.decoder.init_state(encoder_output)
+    decoder_state = net.decoder.init_state(encoder_output, sentence_valid_len)
     decoder_input = torch.unsqueeze(torch.tensor([target_vocab['<bos>']], device=device), dim=0)
     
     for _ in range(num_steps):
@@ -209,7 +208,7 @@ def predict(net, device,
         if pred == target_vocab['<eos>']:
             break
         if save_attention_weights:
-            ...
+            attention_weight_save.append(net.decoder.attention_weights)
         res.append(pred)
     
     return ''.join(target_vocab.to_tokens(res)), attention_weight_save
