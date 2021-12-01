@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 
+import math
 import torch
 import torch.nn as nn
 
@@ -55,6 +56,18 @@ def check_AdditiveAttention():
     print(res, res.shape)
 
 
+def check_DotProductAttention():
+    keys = torch.ones((2, 10, 2))
+    values = torch.arange(40, dtype=torch.float32).reshape(1, 10, 4).repeat(
+        2, 1, 1)
+    valid_lens = torch.tensor([2, 6])
+    queries = torch.normal(0, 1, (2, 1, 2))
+    attention = DotProductAttention(dropout=0.5)
+    attention.eval()
+    res = attention(queries, keys, values, valid_lens)
+    print(res)
+
+
 class AdditiveAttention(nn.Module):
     def __init__(self, q_size, k_size, num_hiddens, dropout=0.5):
         super().__init__()
@@ -63,11 +76,11 @@ class AdditiveAttention(nn.Module):
         self.w_v = nn.Linear(num_hiddens, 1)
         self.dropout = nn.Dropout(dropout)
     
-    def forward(self, keys, queries, values, valid_lens):
+    def forward(self, keys, queries, values, valid_lens=None):
         # keys.shape=(batch_size, num_keys, k_size)
         # queriese.shape=(batch_size, num_queries, q_size)
         # values.shape=(batch_size, num_values, v_size)
-        # num_queries = num_values
+        # num_keys = num_values
         
         features_k, features_q = self.w_k(keys), self.w_q(queries)
         # features_k.shape=(batch_size, num_keys, num_hiddens)
@@ -87,7 +100,7 @@ class AdditiveAttention(nn.Module):
         
         self.attention_weights = masked_softmax(scores, valid_lens)
         # attention_weights.shape = (batch_size, num_queries, num_keys)
-        # values.shape            = (batch_size, num_values, v_size), num_queries = num_values
+        # values.shape            = (batch_size, num_values, v_size), num_kes = num_values
         
         output = torch.bmm(self.dropout(self.attention_weights), values)
         # output.shape=(batch_size, num_queries, v_size)
@@ -95,6 +108,24 @@ class AdditiveAttention(nn.Module):
         return output
 
 
+class DotProductAttention(nn.Module):
+    def __init__(self, dropout=0.5):
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, queries, keys, values, valid_lens=None):
+        # keys.shape=(batch_size, num_keys, k_size)
+        # queriese.shape=(batch_size, num_queries, q_size)
+        # values.shape=(batch_size, num_values, v_size)
+        # k_size must be equal to q_size
+        scores = torch.bmm(queries, keys.transpose(1, 2)) / math.sqrt(queries.shape[-1])
+        self.attention_weights = masked_softmax(scores, valid_lens)
+        # attention_weights.shape = (batch_size, num_queries, num_keys)
+        res = torch.bmm(self.dropout(self.attention_weights), values)
+
+        return res
+
 if __name__ == "__main__":
     check_masked_softmax()
     check_AdditiveAttention()
+    check_DotProductAttention()
