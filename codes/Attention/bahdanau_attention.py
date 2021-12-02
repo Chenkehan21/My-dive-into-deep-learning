@@ -3,6 +3,9 @@ sys.path.append('../')
 
 import torch
 import torch.nn as nn
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from attention_scoring_functions import AdditiveAttention
 from Modern_RNNs.seq2seq import *
@@ -59,7 +62,7 @@ class Seq2SeqAttentionDecoder(nn.Module):
         return self._attention_weights
 
 
-def main(batch_size=64, epochs=2, lr=0.005, 
+def main(batch_size=64, epochs=300, lr=0.005, 
          num_steps=10, embedding_dim=32, num_hiddens=32, num_layers=2, dropout=0.1,
          fig_name='bahdanau_attention', to_predict=True):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,8 +84,15 @@ def main(batch_size=64, epochs=2, lr=0.005,
             translation, attention_weight_seq = predict(
             net, device, eng, source_vocab, target_vocab, num_steps, device)
             print(f'{eng} => {translation}, bleu={BLEU(translation, fra, k=2):.3f}')
-
-        print(attention_weight_seq)
+        attention_weights = torch.cat([step[0][0][0] for step in attention_weight_seq], 0).reshape((1, 1, -1, num_steps)).squeeze()
+        print(attention_weights)
+        attention_weights = attention_weights.detach().cpu().numpy()
+        plt.imshow(attention_weights, cmap='Reds')
+        plt.xlabel('queries')
+        plt.ylabel('keys')
+        plt.colorbar()
+        plt.savefig('./images/bahdanau_attention_weight.png')
+        plt.close()
 
 if __name__ == "__main__":
     main()

@@ -178,10 +178,12 @@ def train(epochs, data_iter, target_vocab,
         
     if fig_name:
         steps = list(range(len(train_losses)))
+        plt.cla()
         plt.plot(steps, train_losses, label='train_loss')
         plt.legend()
         plt.grid(True)
         plt.savefig("./images/%s.png" % fig_name)
+        plt.close()
         
             
 
