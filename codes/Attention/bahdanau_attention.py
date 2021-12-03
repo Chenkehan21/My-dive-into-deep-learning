@@ -47,7 +47,7 @@ class Seq2SeqAttentionDecoder(nn.Module):
             keys = encoder_outputs # keys.shape=(batch_size, num_steps, num_hiddens)
             values = encoder_outputs
             
-            context = self.attention(keys, queries, values, encoder_valid_lens)
+            context = self.attention(queries, keys, values, encoder_valid_lens)
             x = torch.cat([context, x.unsqueeze(dim=1)], dim=-1)
             output, hidden_state = self.rnn(x.permute(1, 0, 2), hidden_state) # output.shape=(num_steps, batch_size, hidden_size)
             outputs.append(output)
@@ -85,7 +85,6 @@ def main(batch_size=64, epochs=300, lr=0.005,
             net, device, eng, source_vocab, target_vocab, num_steps, device)
             print(f'{eng} => {translation}, bleu={BLEU(translation, fra, k=2):.3f}')
         attention_weights = torch.cat([step[0][0][0] for step in attention_weight_seq], 0).reshape((1, 1, -1, num_steps)).squeeze()
-        print(attention_weights)
         attention_weights = attention_weights.detach().cpu().numpy()
         plt.imshow(attention_weights, cmap='Reds')
         plt.xlabel('queries')

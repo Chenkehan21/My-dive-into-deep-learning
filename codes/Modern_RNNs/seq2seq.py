@@ -40,9 +40,12 @@ class EncoderDdecoder(nn.Module):
         
     def forward(self, input, x, *args):
         encoder_outputs = self.encoder(input, *args)
+        # if type(encoder_outputs) == tuple:
+        #     encoder_outputs = encoder_outputs[0]
         state = self.decoder.init_state(encoder_outputs, *args)
+        res = self.decoder.forward(x, state)
         
-        return self.decoder.forward(x, state)
+        return res
     
 
 class Seq2SeqEncodcer(Encoder):

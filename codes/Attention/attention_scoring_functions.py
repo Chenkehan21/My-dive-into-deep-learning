@@ -76,7 +76,7 @@ class AdditiveAttention(nn.Module):
         self.w_v = nn.Linear(num_hiddens, 1)
         self.dropout = nn.Dropout(dropout)
     
-    def forward(self, keys, queries, values, valid_lens=None):
+    def forward(self, queries, keys, values, valid_lens=None):
         # keys.shape=(batch_size, num_keys, k_size)
         # queriese.shape=(batch_size, num_queries, q_size)
         # values.shape=(batch_size, num_values, v_size)
@@ -117,11 +117,12 @@ class DotProductAttention(nn.Module):
         # keys.shape=(batch_size, num_keys, k_size)
         # queriese.shape=(batch_size, num_queries, q_size)
         # values.shape=(batch_size, num_values, v_size)
-        # k_size must be equal to q_size
+        # k_size must be equal to q_size, num_queries = num_keys
         scores = torch.bmm(queries, keys.transpose(1, 2)) / math.sqrt(queries.shape[-1])
         self.attention_weights = masked_softmax(scores, valid_lens)
         # attention_weights.shape = (batch_size, num_queries, num_keys)
         res = torch.bmm(self.dropout(self.attention_weights), values)
+        # res.shape=(batch_size, num_queries, v_size)
 
         return res
 
