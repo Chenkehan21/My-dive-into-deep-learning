@@ -46,7 +46,6 @@ class Seq2SeqAttentionDecoder(nn.Module):
             queries = queries.unsqueeze(dim=1)
             keys = encoder_outputs # keys.shape=(batch_size, num_steps, num_hiddens)
             values = encoder_outputs
-            
             context = self.attention(queries, keys, values, encoder_valid_lens)
             x = torch.cat([context, x.unsqueeze(dim=1)], dim=-1)
             output, hidden_state = self.rnn(x.permute(1, 0, 2), hidden_state) # output.shape=(num_steps, batch_size, hidden_size)

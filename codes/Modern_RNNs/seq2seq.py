@@ -198,7 +198,7 @@ def predict(net, device,
     
     # preprocess source sentence
     sentence_token = source_vocab[source_sentence.lower().split(' ')] + [source_vocab['<eos>']]
-    sentence_valid_len = torch.tensor(len(sentence_token), device=device)
+    sentence_valid_len = torch.tensor([len(sentence_token)], device=device)
     sentence_token = truncate_pad(sentence_token, num_steps, source_vocab['<pad>'])
     
     encoder_input = torch.unsqueeze(torch.tensor(sentence_token, device=device), dim=0)

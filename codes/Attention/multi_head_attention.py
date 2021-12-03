@@ -82,7 +82,7 @@ class Seq2SeqMAtionDecoder(Seq2SeqAttentionDecoder):
 
 def main(batch_size=64, epochs=300, lr=0.005, 
          num_steps=10, embedding_dim=32, num_hiddens=32, num_layers=2, dropout=0.1,
-         fig_name='bahdanau_attention', to_predict=True):
+         fig_name='multi_head_attention', to_predict=True):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_iter, source_vocab, target_vocab = load_data_iter(num_steps, batch_size)
     encoder = Seq2SeqEncodcer(vocab_size=len(source_vocab), embedding_dim=embedding_dim, num_hiddens=num_hiddens, num_layers=num_layers, dropout=dropout)
@@ -108,7 +108,7 @@ def main(batch_size=64, epochs=300, lr=0.005,
         plt.xlabel('queries')
         plt.ylabel('keys')
         plt.colorbar()
-        plt.savefig('./images/bahdanau_attention_weight.png')
+        plt.savefig('./images/multi_attention_weight.png')
         plt.close()
 
 if __name__ == "__main__":
