@@ -18,7 +18,7 @@ class PositionwiseFFN(nn.Module):
         self.dense2 = nn.Linear(num_hiddens, output_size)
 
     def forward(self, x):
-        return self.dense1(self.relu(self.dense1(x)))
+        return self.dense2(self.relu(self.dense1(x)))
 
 
 class AddNorm(nn.Module):
@@ -118,7 +118,7 @@ class TransformerEncoder(nn.Module):
         self._attention_weights = [None] * len(valid_lens)
         for i, enc in enumerate(self.blks):
             x = enc(x, valid_lens)
-            self._attention_weights[i] = enc.attention.attntion_weights
+            self._attention_weights[i] = enc.attention.attention_weights
         
         return x
 
@@ -152,8 +152,8 @@ class TransformerDecoder(nn.Module):
         self._attention_weights = [[None] * len(self.blks) for _ in range(2)]
         for i, dec in enumerate(self.blks):
             x, state = dec(x, state)
-            self._attention_weights[0][i] = dec.attention1.attention.attention_weights
-            self._attention_weights[1][i] = dec.attention2.attention.attention_weights
+            self._attention_weights[0][i] = dec.attention1.attention_weights
+            self._attention_weights[1][i] = dec.attention2.attention_weights
         
         return self.dense(x), state
 
