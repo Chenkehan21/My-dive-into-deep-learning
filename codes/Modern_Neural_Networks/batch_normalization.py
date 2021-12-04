@@ -1,6 +1,14 @@
 import torch
 import torch.nn as nn
 
+
+'''
+Batch normalization is different from layer normalization which we will talk about later/
+For example, after conv2d layers or linear layers we can use BN. If we use BN after linear
+layers x.dim()=2, x.shape=(batch_size, num_features) and we do batch normalization at dimension 0
+but layer normalization will do batch normalization at dimension 1;
+'''
+
 def batch_norm(x, moving_mean, moving_var, epsilon, gamma, beta, momentum):
     if not torch.is_grad_enabled():
         x_hat = (x - moving_mean) / torch.sqrt(moving_var + epsilon)
