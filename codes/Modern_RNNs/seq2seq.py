@@ -66,7 +66,7 @@ class Seq2SeqEncodcer(Encoder):
         return output, hidden_state
     
 
-class Seq2SeqDecoder(nn.Module):
+class Seq2SeqDecoder(Decoder):
     def __init__(self, vocab_size, embedding_dim, num_hiddens, num_layers, dropout=0, **kwargs):
         super().__init__(**kwargs)
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
